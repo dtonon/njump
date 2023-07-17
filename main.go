@@ -61,10 +61,13 @@ func main() {
 			ParseFS(templates, "templates/*"),
 	)
 
+	loadNpubsArchive()
+
 	// routes
 	http.HandleFunc("/njump/image/", generate)
 	http.HandleFunc("/njump/proxy/", proxy)
 	http.Handle("/njump/static/", http.StripPrefix("/njump/", http.FileServer(http.FS(static))))
+	http.HandleFunc("/npubs-archive/", renderProfilesArchive)
 	http.HandleFunc("/", render)
 
 	log.Print("listening at http://0.0.0.0:" + s.Port)

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -343,4 +346,25 @@ func trimProtocol(relay string) string {
 	relay = strings.TrimPrefix(relay, "wss:/") // Some browsers replace upfront '//' with '/'
 	relay = strings.TrimPrefix(relay, "ws:/")  // Some browsers replace upfront '//' with '/'
 	return relay
+}
+
+func loadNpubsArchive() {
+	file, err := os.Open("npubs-archive.txt")
+	if err != nil {
+		log.Fatal().Err(err).Msg("")
+	}
+	defer file.Close()
+
+	// Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	// Cycle through each line and print it
+	for scanner.Scan() {
+		pubkey := scanner.Text()
+		cache.SetWithTTL("pa:"+pubkey, nil, time.Hour*24*90)
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal().Err(err).Msg("")
+	}
 }

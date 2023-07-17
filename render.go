@@ -84,6 +84,9 @@ func render(w http.ResponseWriter, r *http.Request) {
 	authorRelays := []string{}
 
 	if event.Kind == 0 {
+		// Save a user refer for the browsable archive
+		cache.SetWithTTL("pa:"+event.PubKey, nil, time.Hour*24*90)
+
 		key := ""
 		events_num := 10
 		if typ == "profile_sitemap" {
