@@ -301,7 +301,7 @@ func render(w http.ResponseWriter, r *http.Request) {
 		"kindNIP":         kindNIP,
 		"lastNotes":       renderableLastNotes,
 		"parentNevent":    parentNevent,
-		"authorRelays": authorRelays,
+		"authorRelays":    authorRelays,
 	}
 
 	// if a mapping is not found fallback to raw

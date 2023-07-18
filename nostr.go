@@ -34,6 +34,11 @@ var (
 	profiles = []string{
 		"wss://purplepag.es",
 	}
+
+	trustedPubKeys = []string{
+		"7bdef7be22dd8e59f4600e044aa53a1cf975a9dc7d27df5833bc77db784a5805", // dtonon
+		"3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d", // fiatjaf
+	}
 )
 
 func getRelay() string {
@@ -159,7 +164,7 @@ func getLastNotes(ctx context.Context, code string, limit int) []*nostr.Event {
 	for event := range events {
 		lastNotes = nostr.InsertEventIntoDescendingList(lastNotes, event)
 	}
-	
+
 	return lastNotes
 }
 
@@ -179,4 +184,41 @@ func relaysForPubkey(ctx context.Context, pubkey string, extraRelays ...string) 
 	}
 	pubkeyRelays = unique(pubkeyRelays)
 	return pubkeyRelays
+}
+
+func contactsForPubkey(ctx context.Context, pubkey string, extraRelays ...string) []string {
+	pubkeyContacts := make([]string, 0, 100)
+	relays := make([]string, 0, 12)
+	if ok := cache.GetJSON("cc:"+pubkey, &pubkeyContacts); !ok {
+		fmt.Printf("Searching contacts for %s\n", pubkey)
+		ctx, cancel := context.WithTimeout(ctx, time.Millisecond*1500)
+
+		pubkeyRelays := relaysForPubkey(ctx, pubkey, relays...)
+		relays = append(relays, pubkeyRelays...)
+		relays = append(relays, always...)
+		relays = append(relays, profiles...)
+
+		ch := pool.SubManyEose(ctx, relays, nostr.Filters{
+			{
+				Kinds:   []int{3},
+				Authors: []string{pubkey},
+				Limit:   2,
+			},
+		})
+
+		for event := range ch {
+			for _, tag := range event.Tags {
+				if tag[0] == "p" {
+					pubkeyContacts = append(pubkeyContacts, tag[1])
+				}
+			}
+		}
+
+		cancel()
+		if len(pubkeyContacts) > 0 {
+			cache.SetJSONWithTTL("cc:"+pubkey, pubkeyContacts, time.Hour*6)
+		}
+	}
+	pubkeyContacts = unique(pubkeyContacts)
+	return pubkeyContacts
 }
